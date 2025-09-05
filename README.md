@@ -30,19 +30,14 @@ A Next.js application demonstrating wallet integration, order processing, and we
    npm install
    ```
 
-2. **Set up environment variables:**
+2. **Set up environment variables (optional for development):**
    Create a `.env.local` file in the root directory:
 
    ```env
    WEBHOOK_SECRET=shh_super_secret
-   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
    ```
 
-   To get a WalletConnect Project ID:
-
-   - Visit [WalletConnect Cloud](https://cloud.walletconnect.com/)
-   - Create a new project
-   - Copy the Project ID
+   **Note**: The application works out of the box in development mode without any environment variables. The WalletConnect Project ID is no longer required as we use a demo configuration.
 
 3. **Run the development server:**
 
