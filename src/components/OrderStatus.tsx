@@ -21,69 +21,116 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [hasNotifiedFinalStatus, setHasNotifiedFinalStatus] = useState(false);
+  const [isOrderFound, setIsOrderFound] = useState(false);
 
-  const fetchOrderStatus = useCallback(async (isRetry = false) => {
-    try {
-      console.log(`Fetching order status for ${orderId}${isRetry ? ' (retry)' : ''}`);
-      const response = await fetch(`/api/mock/orders/${orderId}`);
+  const fetchOrderStatus = useCallback(
+    async (isRetry = false) => {
+      try {
+        console.log(
+          `Fetching order status for ${orderId}${isRetry ? " (retry)" : ""}`
+        );
+        const response = await fetch(`/api/mock/orders/${orderId}`);
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log(`Order ${orderId} not found${isRetry ? ' (retry failed)' : ''}`);
-          if (isRetry) {
-            setError("Order not found");
-            setIsPolling(false);
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log(
+              `Order ${orderId} not found${isRetry ? " (retry failed)" : ""}`
+            );
+            if (isRetry) {
+              setError("Order not found");
+              setIsPolling(false);
+            }
+            return;
           }
-          return;
+          throw new Error("Failed to fetch order status");
         }
-        throw new Error("Failed to fetch order status");
-      }
 
-      const orderData: Order = await response.json();
-      console.log(`Order ${orderId} found:`, orderData);
-      setOrder(orderData);
-      setError(null); // Clear any previous errors
+        const orderData: Order = await response.json();
+        console.log(`Order ${orderId} found:`, orderData);
+        setOrder(orderData);
+        setError(null); // Clear any previous errors
 
-      // Check if order is in final state and we haven't already notified
-      if ((orderData.status === "settled" || orderData.status === "failed") && !hasNotifiedFinalStatus) {
-        console.log(`Order ${orderId} reached final status: ${orderData.status}`);
-        setHasNotifiedFinalStatus(true);
-        setIsPolling(false);
-        onStatusChange(orderData.status);
+        // Check if order is in final state and we haven't already notified
+        if (
+          (orderData.status === "settled" || orderData.status === "failed") &&
+          !hasNotifiedFinalStatus
+        ) {
+          console.log(
+            `Order ${orderId} reached final status: ${orderData.status}`
+          );
+          setHasNotifiedFinalStatus(true);
+          setIsPolling(false);
+          onStatusChange(orderData.status);
+        }
+      } catch (err) {
+        console.error("Error fetching order status:", err);
+        if (isRetry) {
+          setError("Failed to fetch order status");
+        }
       }
-    } catch (err) {
-      console.error("Error fetching order status:", err);
-      if (isRetry) {
-        setError("Failed to fetch order status");
-      }
-    }
-  }, [orderId, onStatusChange, hasNotifiedFinalStatus]);
+    },
+    [orderId, onStatusChange, hasNotifiedFinalStatus]
+  );
 
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 5; // Increased retries
-    
+    const maxRetries = 10; // Increased retries
+
     const attemptInitialFetch = async () => {
-      console.log(`Attempting initial fetch for order ${orderId}, attempt ${retryCount + 1}`);
-      await fetchOrderStatus();
+      console.log(
+        `Attempting initial fetch for order ${orderId}, attempt ${
+          retryCount + 1
+        }`
+      );
       
+      try {
+        const response = await fetch(`/api/mock/orders/${orderId}`);
+        
+        if (response.ok) {
+          const orderData: Order = await response.json();
+          console.log(`Order ${orderId} found:`, orderData);
+          setOrder(orderData);
+          setError(null);
+          setIsOrderFound(true);
+          
+          // If order is already in final state, handle it immediately
+          if (orderData.status === "settled" || orderData.status === "failed") {
+            console.log(`Order ${orderId} already in final status: ${orderData.status}`);
+            setHasNotifiedFinalStatus(true);
+            setIsPolling(false);
+            onStatusChange(orderData.status);
+            return;
+          }
+        } else if (response.status === 404) {
+          console.log(`Order ${orderId} not found (attempt ${retryCount + 1})`);
+        } else {
+          throw new Error("Failed to fetch order status");
+        }
+      } catch (err) {
+        console.error("Error fetching order status:", err);
+      }
+
       // If order not found and we haven't exceeded retries, try again
-      if (!order && retryCount < maxRetries) {
+      if (!isOrderFound && retryCount < maxRetries) {
         retryCount++;
-        const delay = Math.min(200 * retryCount, 1000); // Faster retries, max 1s
-        console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        const delay = Math.min(300 * retryCount, 2000); // Slower retries, max 2s
+        console.log(
+          `Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`
+        );
         setTimeout(attemptInitialFetch, delay);
-      } else if (!order && retryCount >= maxRetries) {
+      } else if (!isOrderFound && retryCount >= maxRetries) {
         console.log(`Max retries exceeded for order ${orderId}`);
+        setError("Order not found after multiple attempts");
+        setIsPolling(false);
       }
     };
 
     // Start initial fetch attempts with a small delay
-    setTimeout(attemptInitialFetch, 100);
+    setTimeout(attemptInitialFetch, 200);
 
-    // Set up polling every 3 seconds (only if not already finalized)
+    // Set up polling every 3 seconds (only if order found and not already finalized)
     const pollInterval = setInterval(() => {
-      if (!hasNotifiedFinalStatus) {
+      if (isOrderFound && !hasNotifiedFinalStatus) {
         fetchOrderStatus(true);
       }
     }, 3000);
@@ -100,7 +147,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus, orderId]);
+  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus, orderId, isOrderFound]);
 
   // Separate effect to handle polling state changes
   useEffect(() => {
@@ -113,7 +160,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
     }
   }, [isPolling, timeoutId]);
 
-  if (error) {
+  if (error && !isOrderFound) {
     return (
       <div className="bg-red-50 rounded-2xl p-8 text-center">
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
