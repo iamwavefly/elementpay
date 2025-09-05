@@ -152,24 +152,57 @@ npm run lint
 
 ```
 src/
-├── app/
-│   ├── api/
-│   │   ├── mock/orders/
-│   │   └── webhooks/elementpay/
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── order-form.tsx
-│   ├── order-status.tsx
-│   ├── providers.tsx
-│   └── wallet-connect.tsx
-├── lib/
-│   ├── wallet.ts
-│   └── webhook.ts
+├── app/                          # Next.js App Router
+│   ├── api/                      # API Routes
+│   │   ├── mock/orders/          # Mock Order API
+│   │   │   ├── create/route.ts   # Create order endpoint
+│   │   │   └── [order_id]/route.ts # Get order status
+│   │   └── webhooks/elementpay/  # Webhook endpoint
+│   │       └── route.ts
+│   ├── globals.css               # Global styles
+│   ├── layout.tsx                # Root layout
+│   └── page.tsx                  # Home page
+├── components/                   # React Components
+│   ├── ui/                       # Reusable UI components
+│   │   ├── Button.tsx
+│   │   ├── LoadingSpinner.tsx
+│   │   ├── StatusIcon.tsx
+│   │   └── index.ts
+│   ├── state/                    # Application state components
+│   │   ├── WalletState.tsx
+│   │   ├── ProcessingState.tsx
+│   │   ├── CompletedState.tsx
+│   │   ├── TimeoutState.tsx
+│   │   └── index.ts
+│   ├── receipt/                  # Receipt components
+│   │   ├── PaymentReceipt.tsx
+│   │   └── index.ts
+│   ├── AppStateManager.tsx       # Main app orchestrator
+│   ├── AppRenderer.tsx          # Pure render logic
+│   ├── WalletConnect.tsx
+│   ├── OrderForm.tsx
+│   ├── OrderStatus.tsx
+│   └── Providers.tsx
+├── hooks/                        # Custom React hooks
+│   ├── useOrderApi.ts           # API calls logic
+│   ├── useAppState.ts           # App state management
+│   └── index.ts
+├── lib/                          # Utilities and configuration
+│   ├── env.ts                   # Environment variables
+│   ├── wallet.ts                # Wallet configuration
+│   ├── storage.ts               # In-memory storage
+│   └── webhook.ts               # Webhook utilities
 └── types/
-    └── index.ts
+    └── index.ts                 # TypeScript type definitions
 ```
+
+### Architecture Highlights
+
+- **Modular Design**: Components are split into logical directories (ui, state, receipt)
+- **Custom Hooks**: Business logic separated into reusable hooks
+- **Type Safety**: Comprehensive TypeScript definitions
+- **Code Splitting**: Each component in its own file for maintainability
+- **Clean Separation**: UI, business logic, and API calls are separated
 
 ## License
 
