@@ -82,20 +82,22 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
           retryCount + 1
         }`
       );
-      
+
       try {
         const response = await fetch(`/api/mock/orders/${orderId}`);
-        
+
         if (response.ok) {
           const orderData: Order = await response.json();
           console.log(`Order ${orderId} found:`, orderData);
           setOrder(orderData);
           setError(null);
           setIsOrderFound(true);
-          
+
           // If order is already in final state, handle it immediately
           if (orderData.status === "settled" || orderData.status === "failed") {
-            console.log(`Order ${orderId} already in final status: ${orderData.status}`);
+            console.log(
+              `Order ${orderId} already in final status: ${orderData.status}`
+            );
             setHasNotifiedFinalStatus(true);
             setIsPolling(false);
             onStatusChange(orderData.status);
@@ -147,7 +149,14 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus, orderId, isOrderFound]);
+  }, [
+    fetchOrderStatus,
+    onTimeout,
+    order,
+    hasNotifiedFinalStatus,
+    orderId,
+    isOrderFound,
+  ]);
 
   // Separate effect to handle polling state changes
   useEffect(() => {

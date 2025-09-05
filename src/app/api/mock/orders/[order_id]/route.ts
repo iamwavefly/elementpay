@@ -50,13 +50,8 @@ export async function GET(
       } else if (secondsElapsed < 18) {
         newStatus = "processing";
       } else {
-        // Transition to final status (we know order.status is "created" or "processing" here)
-        // Use order ID to create a deterministic "random" result
-        const hash = orderId.split("").reduce((a, b) => {
-          a = (a << 5) - a + b.charCodeAt(0);
-          return a & a;
-        }, 0);
-        newStatus = Math.abs(hash) % 10 < 8 ? "settled" : "failed";
+        // Transition to final status - always successful for demo purposes
+        newStatus = "settled";
         console.log(
           `Order ${orderId} transitioning to final status: ${newStatus} (seconds elapsed: ${secondsElapsed})`
         );
