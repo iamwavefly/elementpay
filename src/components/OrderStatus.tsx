@@ -21,21 +21,27 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
-  const fetchOrderStatus = useCallback(async () => {
+  const fetchOrderStatus = useCallback(async (isRetry = false) => {
     try {
+      console.log(`Fetching order status for ${orderId}${isRetry ? ' (retry)' : ''}`);
       const response = await fetch(`/api/mock/orders/${orderId}`);
 
       if (!response.ok) {
         if (response.status === 404) {
-          setError("Order not found");
-          setIsPolling(false);
+          console.log(`Order ${orderId} not found${isRetry ? ' (retry failed)' : ''}`);
+          if (isRetry) {
+            setError("Order not found");
+            setIsPolling(false);
+          }
           return;
         }
         throw new Error("Failed to fetch order status");
       }
 
       const orderData: Order = await response.json();
+      console.log(`Order ${orderId} found:`, orderData);
       setOrder(orderData);
+      setError(null); // Clear any previous errors
 
       // Check if order is in final state
       if (orderData.status === "settled" || orderData.status === "failed") {
@@ -44,17 +50,33 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       }
     } catch (err) {
       console.error("Error fetching order status:", err);
-      setError("Failed to fetch order status");
+      if (isRetry) {
+        setError("Failed to fetch order status");
+      }
     }
   }, [orderId, onStatusChange]);
 
   useEffect(() => {
-    // Initial fetch
-    fetchOrderStatus();
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const attemptInitialFetch = async () => {
+      await fetchOrderStatus();
+      
+      // If order not found and we haven't exceeded retries, try again
+      if (!order && retryCount < maxRetries) {
+        retryCount++;
+        const delay = Math.min(500 * retryCount, 2000); // Exponential backoff, max 2s
+        setTimeout(attemptInitialFetch, delay);
+      }
+    };
+
+    // Start initial fetch attempts
+    attemptInitialFetch();
 
     // Set up polling every 3 seconds
     const pollInterval = setInterval(() => {
-      fetchOrderStatus();
+      fetchOrderStatus(true);
     }, 3000);
 
     // Set up timeout after 60 seconds
@@ -69,7 +91,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [fetchOrderStatus, onTimeout]);
+  }, [fetchOrderStatus, onTimeout, order]);
 
   // Separate effect to handle polling state changes
   useEffect(() => {
