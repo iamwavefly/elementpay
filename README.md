@@ -30,14 +30,8 @@ A Next.js application demonstrating wallet integration, order processing, and we
    npm install
    ```
 
-2. **Set up environment variables (optional for development):**
-   Create a `.env.local` file in the root directory:
-
-   ```env
-   WEBHOOK_SECRET=shh_super_secret
-   ```
-
-   **Note**: The application works out of the box in development mode without any environment variables. The WalletConnect Project ID is no longer required as we use a demo configuration.
+2. **No environment setup required:**
+   The application works out of the box without any configuration. All settings are hardcoded for simplicity.
 
 3. **Run the development server:**
 

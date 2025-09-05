@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/webhook";
 import { WebhookPayload } from "@/types";
 import { orders } from "@/lib/storage";
-import { env, validateProductionEnv } from "@/lib/env";
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate production environment variables
-    validateProductionEnv();
-    
     const signature = request.headers.get("X-Webhook-Signature");
     if (!signature) {
       return NextResponse.json(
@@ -21,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBody = await request.text();
-    const secret = env.WEBHOOK_SECRET;
+    const secret = "shh_super_secret"; // Hardcoded for simplicity
 
     // Verify webhook signature
     if (!verifyWebhookSignature(signature, rawBody, secret)) {
