@@ -13,14 +13,16 @@ export const env = {
   API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
 } as const;
 
-// Validate required environment variables in production
-if (env.NODE_ENV === "production") {
-  if (
-    !process.env.WEBHOOK_SECRET ||
-    process.env.WEBHOOK_SECRET === "shh_super_secret"
-  ) {
-    throw new Error(
-      "WEBHOOK_SECRET must be set to a secure value in production"
-    );
+// Validate required environment variables in production (runtime only)
+export function validateProductionEnv() {
+  if (env.NODE_ENV === "production") {
+    if (
+      !process.env.WEBHOOK_SECRET ||
+      process.env.WEBHOOK_SECRET === "shh_super_secret"
+    ) {
+      throw new Error(
+        "WEBHOOK_SECRET must be set to a secure value in production"
+      );
+    }
   }
 }
