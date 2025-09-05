@@ -23,7 +23,7 @@ export async function GET(
 
     console.log(`Looking for order: ${orderId}`);
     console.log(`Available orders:`, Array.from(orders.keys()));
-    
+
     const order = orders.get(orderId);
 
     if (!order) {
@@ -33,7 +33,7 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+
     console.log(`Order found: ${orderId}`, order);
 
     // Calculate time-based status only if not already finalized
@@ -50,23 +50,23 @@ export async function GET(
       } else if (secondsElapsed < 18) {
         newStatus = "processing";
       } else {
-        // Only transition to final status if not already finalized
-        if (order.status !== "settled" && order.status !== "failed") {
-          // Use order ID to create a deterministic "random" result
-          const hash = orderId.split("").reduce((a, b) => {
-            a = (a << 5) - a + b.charCodeAt(0);
-            return a & a;
-          }, 0);
-          newStatus = Math.abs(hash) % 10 < 8 ? "settled" : "failed";
-          console.log(`Order ${orderId} transitioning to final status: ${newStatus} (seconds elapsed: ${secondsElapsed})`);
-        } else {
-          newStatus = order.status; // Keep current status if already finalized
-        }
+        // Transition to final status (we know order.status is "created" or "processing" here)
+        // Use order ID to create a deterministic "random" result
+        const hash = orderId.split("").reduce((a, b) => {
+          a = (a << 5) - a + b.charCodeAt(0);
+          return a & a;
+        }, 0);
+        newStatus = Math.abs(hash) % 10 < 8 ? "settled" : "failed";
+        console.log(
+          `Order ${orderId} transitioning to final status: ${newStatus} (seconds elapsed: ${secondsElapsed})`
+        );
       }
 
       // Update order status if it has changed and not already finalized
       if (order.status !== newStatus && newStatus !== order.status) {
-        console.log(`Order ${orderId} status changing from ${order.status} to ${newStatus}`);
+        console.log(
+          `Order ${orderId} status changing from ${order.status} to ${newStatus}`
+        );
         order.status = newStatus;
         orders.set(orderId, order);
       }

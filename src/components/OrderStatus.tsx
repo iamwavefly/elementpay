@@ -57,7 +57,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
         setError("Failed to fetch order status");
       }
     }
-  }, [orderId, onStatusChange]);
+  }, [orderId, onStatusChange, hasNotifiedFinalStatus]);
 
   useEffect(() => {
     let retryCount = 0;
@@ -100,7 +100,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus]);
+  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus, orderId]);
 
   // Separate effect to handle polling state changes
   useEffect(() => {
