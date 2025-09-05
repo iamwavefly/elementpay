@@ -21,14 +21,20 @@ export async function GET(
       );
     }
 
+    console.log(`Looking for order: ${orderId}`);
+    console.log(`Available orders:`, Array.from(orders.keys()));
+    
     const order = orders.get(orderId);
 
     if (!order) {
+      console.log(`Order not found: ${orderId}`);
       return NextResponse.json(
         { error: "order_not_found", message: `No order with id ${orderId}` },
         { status: 404 }
       );
     }
+    
+    console.log(`Order found: ${orderId}`, order);
 
     // Calculate time-based status only if not already finalized
     if (order.status === "created" || order.status === "processing") {
@@ -44,21 +50,23 @@ export async function GET(
       } else if (secondsElapsed < 18) {
         newStatus = "processing";
       } else {
-        // 80% settled, 20% failed - use deterministic approach based on order ID
-        if (order.status === "created" || order.status === "processing") {
+        // Only transition to final status if not already finalized
+        if (order.status !== "settled" && order.status !== "failed") {
           // Use order ID to create a deterministic "random" result
           const hash = orderId.split("").reduce((a, b) => {
             a = (a << 5) - a + b.charCodeAt(0);
             return a & a;
           }, 0);
           newStatus = Math.abs(hash) % 10 < 8 ? "settled" : "failed";
+          console.log(`Order ${orderId} transitioning to final status: ${newStatus} (seconds elapsed: ${secondsElapsed})`);
         } else {
           newStatus = order.status; // Keep current status if already finalized
         }
       }
 
       // Update order status if it has changed and not already finalized
-      if (order.status !== newStatus) {
+      if (order.status !== newStatus && newStatus !== order.status) {
+        console.log(`Order ${orderId} status changing from ${order.status} to ${newStatus}`);
         order.status = newStatus;
         orders.set(orderId, order);
       }

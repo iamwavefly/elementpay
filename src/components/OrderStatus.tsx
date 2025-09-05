@@ -20,6 +20,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
   const [isPolling, setIsPolling] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [hasNotifiedFinalStatus, setHasNotifiedFinalStatus] = useState(false);
 
   const fetchOrderStatus = useCallback(async (isRetry = false) => {
     try {
@@ -43,8 +44,10 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       setOrder(orderData);
       setError(null); // Clear any previous errors
 
-      // Check if order is in final state
-      if (orderData.status === "settled" || orderData.status === "failed") {
+      // Check if order is in final state and we haven't already notified
+      if ((orderData.status === "settled" || orderData.status === "failed") && !hasNotifiedFinalStatus) {
+        console.log(`Order ${orderId} reached final status: ${orderData.status}`);
+        setHasNotifiedFinalStatus(true);
         setIsPolling(false);
         onStatusChange(orderData.status);
       }
@@ -58,25 +61,31 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
 
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 5; // Increased retries
     
     const attemptInitialFetch = async () => {
+      console.log(`Attempting initial fetch for order ${orderId}, attempt ${retryCount + 1}`);
       await fetchOrderStatus();
       
       // If order not found and we haven't exceeded retries, try again
       if (!order && retryCount < maxRetries) {
         retryCount++;
-        const delay = Math.min(500 * retryCount, 2000); // Exponential backoff, max 2s
+        const delay = Math.min(200 * retryCount, 1000); // Faster retries, max 1s
+        console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
         setTimeout(attemptInitialFetch, delay);
+      } else if (!order && retryCount >= maxRetries) {
+        console.log(`Max retries exceeded for order ${orderId}`);
       }
     };
 
-    // Start initial fetch attempts
-    attemptInitialFetch();
+    // Start initial fetch attempts with a small delay
+    setTimeout(attemptInitialFetch, 100);
 
-    // Set up polling every 3 seconds
+    // Set up polling every 3 seconds (only if not already finalized)
     const pollInterval = setInterval(() => {
-      fetchOrderStatus(true);
+      if (!hasNotifiedFinalStatus) {
+        fetchOrderStatus(true);
+      }
     }, 3000);
 
     // Set up timeout after 60 seconds
@@ -91,7 +100,7 @@ export const OrderStatusComponent = memo(function OrderStatusComponent({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [fetchOrderStatus, onTimeout, order]);
+  }, [fetchOrderStatus, onTimeout, order, hasNotifiedFinalStatus]);
 
   // Separate effect to handle polling state changes
   useEffect(() => {

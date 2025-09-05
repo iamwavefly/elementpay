@@ -12,7 +12,13 @@ export function useAppState() {
 
   const handleOrderSubmit = async (orderData: CreateOrderRequest) => {
     try {
+      console.log("Creating order with data:", orderData);
       const order = await createOrder(orderData);
+      console.log("Order created successfully:", order);
+      
+      // Add a small delay to ensure order is fully processed
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       setCurrentOrderId(order.order_id);
       setCurrentState("processing");
     } catch (error) {

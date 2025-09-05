@@ -101,6 +101,11 @@ export async function POST(request: NextRequest) {
 
     // Store order
     orders.set(orderId, order);
+    
+    // Add a small delay to ensure order is properly stored before response
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    console.log(`Order created and stored: ${orderId}`, order);
 
     return NextResponse.json(order);
   } catch (error) {

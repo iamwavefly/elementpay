@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBody = await request.text();
-    const secret = "shh_super_secret"; // Hardcoded for simplicity
+    const secret = "shh_super_secret"; // Hardcoded for simplicityit 
 
     // Verify webhook signature
     if (!verifyWebhookSignature(signature, rawBody, secret)) {
