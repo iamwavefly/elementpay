@@ -44,6 +44,8 @@ export async function GET(
         (now.getTime() - createdAt.getTime()) / 1000
       );
 
+      console.log(`Order ${orderId} timing check: created_at=${order.created_at}, now=${now.toISOString()}, secondsElapsed=${secondsElapsed}, currentStatus=${order.status}`);
+
       let newStatus: OrderStatus;
       if (secondsElapsed < 8) {
         newStatus = "created";
@@ -57,8 +59,8 @@ export async function GET(
         );
       }
 
-      // Update order status if it has changed and not already finalized
-      if (order.status !== newStatus && newStatus !== order.status) {
+      // Update order status if it has changed
+      if (order.status !== newStatus) {
         console.log(
           `Order ${orderId} status changing from ${order.status} to ${newStatus}`
         );
